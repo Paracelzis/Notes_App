@@ -12,10 +12,11 @@
     <androidx.appcompat.widget.SearchView
         android:id="@+id/searchView_home"
         android:layout_margin="16dp"
+        android:submitBackground="@drawable/bg_white_rounded"
+        android:background="@drawable/bg_white_rounded"
         app:queryHint="Enter text ..."
         app:iconifiedByDefault="false"
         android:layout_alignParentTop="true"
-        android:background="@color/white"
         android:layout_width="match_parent"
         android:layout_height="?android:attr/actionBarSize"
         />
