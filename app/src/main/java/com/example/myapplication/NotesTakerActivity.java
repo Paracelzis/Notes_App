@@ -16,12 +16,18 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.content.ContextCompat;
 
 import com.example.myapplication.Models.Notes;
 
@@ -32,7 +38,9 @@ public class NotesTakerActivity extends AppCompatActivity {
     Notes notes;
     boolean isOldNote = false;
 
-    String location = "";
+    String location;
+
+    private static final int PERMISSION_REQUEST_CODE = 123;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +83,10 @@ public class NotesTakerActivity extends AppCompatActivity {
                 notes.setTitle(title);
                 notes.setNotes(description);
                 notes.setDate(formatter.format(date));
+
+                location = getCityFromCurrentLocation(NotesTakerActivity.this);
                 notes.setLocation(location);
+
 
                 Intent intent = new Intent();
                 intent.putExtra("note", notes);
@@ -84,5 +95,45 @@ public class NotesTakerActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    public String getCityFromCurrentLocation(Context context) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Разрешение на доступ к местоположению не предоставлено
+            // Здесь можно запросить разрешение у пользователя
+            ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_CODE);
+            return "Permission denied";
+        }
+
+        LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+
+        if (locationManager != null) {
+            try {
+                Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+                if (location == null) {
+                    location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                }
+
+                if (location != null) {
+                    Geocoder geocoder = new Geocoder(context, Locale.getDefault());
+                    double latitude = location.getLatitude();
+                    double longitude = location.getLongitude();
+                    String city = "";
+
+                    List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+                    if (addresses != null && addresses.size() > 0) {
+                        city = addresses.get(0).getLocality();
+                    }
+
+                    return city;
+                }
+            } catch (SecurityException | IOException e) {
+                e.printStackTrace();
+                return "Error getting city";
+            }
+        }
+
+        return "City not found";
     }
 }
