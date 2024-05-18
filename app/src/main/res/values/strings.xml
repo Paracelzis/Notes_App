@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Notes</string>
+    <string name="title_activity_info">InfoActivity</string>
+    <string name="action_settings">Settings</string>
+
+
+    <string name="info">Макаров Андрей 2024г.</string>
+    <string name="group_number">Группа 4133к</string>
+    <string name="about">О приложении:</string>
 </resources>

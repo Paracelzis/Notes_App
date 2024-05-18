@@ -17,6 +17,13 @@ import android.view.View;
 import androidx.appcompat.widget.SearchView;
 import android.widget.Toast;
 
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
@@ -31,12 +38,22 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
 
     RecyclerView recyclerView;
     FloatingActionButton fab_add;
+
+    FloatingActionButton fab_info;
     NotesListAdapter notesListAdapter;
     RoomDB database;
     List<Notes> notes = new ArrayList<>();
     SearchView searchView_home;
-
     Notes selectedNote;
+
+    private static final int MIN_TIME_BETWEEN_SHAKES_MILLISECS = 10000;
+
+    long mLastShakeTime;
+
+    private SensorManager sensorManager;
+    private float acceleration = 0f;
+    private float currentAcceleration = SensorManager.GRAVITY_EARTH;
+    private float lastAcceleration = SensorManager.GRAVITY_EARTH;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,10 +63,19 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         recyclerView = findViewById(R.id.recycler_home);
         fab_add = findViewById(R.id.fab_add);
 
+        fab_info = findViewById(R.id.fab_info);
+
         searchView_home = findViewById(R.id.searchView_home);
 
         database = RoomDB.getInstance(this);
         notes = database.mainDAO().getAll();
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sensorManager.registerListener(sensorListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+
+        acceleration = 10f;
+        currentAcceleration = SensorManager.GRAVITY_EARTH;
+        lastAcceleration = SensorManager.GRAVITY_EARTH;
 
         updateRecycler(notes);
 
@@ -61,7 +87,14 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
             }
         });
 
-        System.out.println("Ваше сообщение для вывода в консоль");
+        fab_info.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, InfoActivity.class);
+                startActivity(intent);
+            }
+        });
+
 
         searchView_home.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -176,4 +209,31 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
             return false;
         }
     }
+
+    private final SensorEventListener sensorListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            long currentTime = System.currentTimeMillis();
+            if ((currentTime - mLastShakeTime) > MIN_TIME_BETWEEN_SHAKES_MILLISECS) {
+                float x = event.values[0];
+                float y = event.values[1];
+                float z = event.values[2];
+
+                lastAcceleration = currentAcceleration;
+                currentAcceleration = (float) Math.sqrt(x * x + y * y + z * z);
+                float delta = currentAcceleration - lastAcceleration;
+                acceleration = acceleration * 0.9f + delta;
+
+                if (acceleration > 12) {
+                    mLastShakeTime = currentTime;
+                    Intent intent = new Intent(MainActivity.this, InfoActivity.class);
+                    startActivity(intent);
+                    Toast.makeText(getApplicationContext(), "Shake event detected", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    };
 }
